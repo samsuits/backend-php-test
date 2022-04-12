@@ -2,6 +2,13 @@
 
 {% block content %}
 <div class="col-md-4 col-md-offset-4">
+    <div class="col-12" style="margin-top: 10px">
+        {% for error in app.session.getFlashBag.get('errors') %}
+            <div class="alert alert-danger" role="alert">
+                <strong>Error!</strong> {{ error }}
+            </div>
+        {% endfor %}
+    </div>
     <h1>Todo List:</h1>
     <table class="table table-striped">
         <th>#</th><th>User</th><th>Description</th><th></th>
