@@ -5,3 +5,24 @@ body {
 .login-form > div {
     margin-top: 10px;
 }
+
+.mt-10 {
+    margin-top: 10px;
+}
+
+.line-through {
+    text-decoration: line-through;
+}
+
+a.line-through:hover {
+    text-decoration: underline line-through;
+
+}
+
+.display-flex {
+    display: flex;
+}
+
+.completed {
+    background: lightgreen !important;
+}

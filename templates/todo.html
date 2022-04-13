@@ -5,11 +5,16 @@
     <h1>Todo:</h1>
     <table class="table table-striped">
         <th>#</th><th>User</th><th>Description</th><th></th>
-        <tr>
+        <tr {% if todo.completed %} class="completed" {% endif %}>
             <td>{{ todo.id }}</td>
             <td>{{ todo.user_id }}</td>
-            <td>{{ todo.description }}</td>
-            <td>
+            <td {% if todo.completed %} class="line-through" {% endif %}>{{ todo.description }}</td>
+            <td class="display-flex">
+                {% if not todo.completed %}
+                <form method="post" action="{{ app.request.baseurl }}/todo/complete/{{ todo.id }}">
+                    <button title="click to complete" type="submit" class="btn btn-xs btn-success"><span class="glyphicon glyphicon-ok glyphicon-white"></span></button>
+                </form> &nbsp;
+                {% endif %}
                 <form method="post" action="{{ app.request.baseurl }}/todo/delete/{{ todo.id }}">
                     <button type="submit" class="btn btn-xs btn-danger"><span class="glyphicon glyphicon-remove glyphicon-white"></span></button>
                 </form>
