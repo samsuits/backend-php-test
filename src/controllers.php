@@ -23,6 +23,7 @@ $app->match('/login', function (Request $request) use ($app) {
 
     if ($username) {
         $sql = "SELECT * FROM users WHERE username = '$username' and password = '$password'";
+        echo $sql;
         $user = $app['db']->fetchAssoc($sql);
 
         if ($user){
@@ -41,7 +42,7 @@ $app->get('/logout', function () use ($app) {
 });
 
 
-$app->get('/todo/{id}', function ($id) use ($app) {
+$app->get('/todo/{id}/{format}', function ($id, $format) use ($app) {
     if (null === $user = $app['session']->get('user')) {
         return $app->redirect('/login');
     }
@@ -49,6 +50,10 @@ $app->get('/todo/{id}', function ($id) use ($app) {
     if ($id){
         $sql = "SELECT * FROM todos WHERE id = '$id'";
         $todo = $app['db']->fetchAssoc($sql);
+
+        if ($format && $format == 'json') {
+            return $app->json($todo);
+        }
 
         return $app['twig']->render('todo.html', [
             'todo' => $todo,
@@ -62,7 +67,8 @@ $app->get('/todo/{id}', function ($id) use ($app) {
         ]);
     }
 })
-->value('id', null);
+->value('id', null)
+    ->value('format', null);
 
 
 $app->post('/todo/add', function (Request $request) use ($app) {
