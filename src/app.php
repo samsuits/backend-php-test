@@ -1,14 +1,14 @@
 <?php
 
+use DerAlex\Silex\YamlConfigServiceProvider;
 use Silex\Application;
+use Silex\Provider\DoctrineServiceProvider;
+use Silex\Provider\HttpFragmentServiceProvider;
+use Silex\Provider\ServiceControllerServiceProvider;
 use Silex\Provider\SessionServiceProvider;
 use Silex\Provider\TwigServiceProvider;
 use Silex\Provider\UrlGeneratorServiceProvider;
 use Silex\Provider\ValidatorServiceProvider;
-use Silex\Provider\ServiceControllerServiceProvider;
-use Silex\Provider\HttpFragmentServiceProvider;
-use Silex\Provider\DoctrineServiceProvider;
-use DerAlex\Silex\YamlConfigServiceProvider;
 
 $app = new Application();
 $app->register(new SessionServiceProvider());
@@ -29,5 +29,8 @@ $app->register(new DoctrineServiceProvider, array(
         'charset'   => 'utf8',
     ),
 ));
+
+// Paginator
+$app->register(new \Provider\PaginatorServiceProvider());
 
 return $app;

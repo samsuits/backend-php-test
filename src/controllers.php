@@ -1,5 +1,6 @@
 <?php
 
+use Kosinix\Pagination;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -59,12 +60,7 @@ $app->get('/todo/{id}/{format}', function ($id, $format) use ($app) {
             'todo' => $todo,
         ]);
     } else {
-        $sql = "SELECT * FROM todos WHERE user_id = '${user['id']}'";
-        $todos = $app['db']->fetchAll($sql);
-
-        return $app['twig']->render('todos.html', [
-            'todos' => $todos,
-        ]);
+        return $app->redirect('/todolist');
     }
 })
 ->value('id', null)
@@ -108,3 +104,35 @@ $app->match('/todo/delete/{id}', function ($id) use ($app) {
 
     return $app->redirect('/todo');
 });
+
+$app->get('/todolist/{page}/{sort_by}/{sorting}', function ($page, $sort_by, $sorting) use ($app) {
+    if (null === $user = $app['session']->get('user')) {
+        return $app->redirect('/login');
+    }
+
+    $sql = 'SELECT COUNT(*) AS `total` FROM todos';
+    $count = $app['db']->fetchAssoc($sql);
+    $count = (int) $count['total'];
+
+
+    /** @var \Kosinix\Paginator $paginator */
+    $paginator =  $app['paginator']($count, $page);
+
+    $sql = sprintf('SELECT * FROM todos ORDER BY %s %s LIMIT %d,%d',
+        $sort_by, strtoupper($sorting), $paginator->getStartIndex(), $paginator->getPerPage());
+
+    $todos = $app['db']->fetchAll($sql);
+
+    $pagination = new Pagination($paginator, $app['url_generator'], 'todolist', $sort_by, $sorting);
+
+    return $app['twig']->render('todos.html', [
+        'todos' => $todos,
+        'pagination' => $pagination
+    ]);
+})->value('page', 1)
+    ->value('sort_by', 'id')
+    ->value('sorting', 'asc')
+    ->assert('page', '\d+') // Numbers only
+    ->assert('sort_by','[a-zA-Z_]+') // Match a-z, A-Z, and "_"
+    ->assert('sorting','(\basc\b)|(\bdesc\b)') // Match "asc" or "desc"
+    ->bind('todolist');
