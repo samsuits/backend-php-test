@@ -21,15 +21,16 @@
         "symfony/translation": "~2.3",
         "symfony/twig-bridge": "~2.3",
         "symfony/validator": "~2.3",
-        "doctrine/dbal": "~2.2",
         "deralex/yaml-config-service-provider": "1.0.x-dev",
         "kosinix/paginator": "dev-master",
-        "kosinix/pagination-silex": "dev-master"
+        "kosinix/pagination-silex": "dev-master",
+        "dflydev/doctrine-orm-service-provider": "*"
     },
     "autoload": {
         "psr-0": {
             "": "src/",
-            "Provider\\": "src/Provider"
+            "Provider\\": "src/Provider",
+            "Entity\\": "src/"
         }
     },
     "extra": {

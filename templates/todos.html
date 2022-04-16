@@ -22,7 +22,7 @@
     </div>
     <table class="table table-striped">
         <tr>
-            <form method="post" action="{{ app.request.baseurl }}/todo/add">
+            <form method="post" action="{{ app.request.baseurl }}/todo/add" autocomplete="off">
                 <td colspan="3">
                     <input type="textbox" name="description" class="small-6 small-center" placeholder="Description...">
                 </td>
@@ -33,20 +33,23 @@
         </tr>
         <th>#</th><th>User</th><th>Description</th><th></th>
         {% for todo in todos %}
-            <tr {% if todo.completed %} class="completed" {% endif %}>
-                <td>{{ todo.id }}</td>
-                <td>{{ todo.user_id }}</td>
+            <tr {% if todo.getCompleted() %} class="completed" {% endif %}>
+                <td>{{ todo.getId() }}</td>
+                <td>{{ todo.getUserId() }}</td>
                 <td>
-                    <a href="{{ app.request.baseurl }}/todo/{{ todo.id }}" {% if todo.completed %} class="line-through" {% endif %}>
-                       {{ todo.description }}
+                    <a href="{{ app.request.baseurl }}/todo/{{ todo.id }}" {% if todo.getCompleted() %} class="line-through" {% endif %}>
+                       {{ todo.getDescription() }}
                     </a>
                 </td>
                 <td class="display-flex">
-                    {% if not todo.completed %}
+                    {% if not todo.getCompleted() %}
                     <form method="post" action="{{ app.request.baseurl }}/todo/complete/{{ todo.id }}">
                         <button title="click to complete" type="submit" class="btn btn-xs btn-success"><span class="glyphicon glyphicon-ok glyphicon-white"></span></button>
                     </form> &nbsp;
                     {% endif %}
+                    <a href="{{ app.request.baseurl }}/todo/{{ todo.id }}/json" class="text-decoration-none">
+                        <button title="click for json" type="submit" class="btn btn-xs btn-secondary"><span class="glyphicon glyphicon-file glyphicon-white"></span></button>
+                    </a> &nbsp;
                     <form method="post" action="{{ app.request.baseurl }}/todo/delete/{{ todo.id }}">
                         <button type="submit" class="btn btn-xs btn-danger"><span class="glyphicon glyphicon-remove glyphicon-white"></span></button>
                     </form>

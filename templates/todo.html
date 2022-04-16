@@ -5,17 +5,20 @@
     <h1>Todo</h1>
     <table class="table table-striped">
         <th>#</th><th>User</th><th>Description</th><th></th>
-        <tr {% if todo.completed %} class="completed" {% endif %}>
-            <td>{{ todo.id }}</td>
-            <td>{{ todo.user_id }}</td>
-            <td {% if todo.completed %} class="line-through" {% endif %}>{{ todo.description }}</td>
+        <tr {% if todo.getCompleted() %} class="completed" {% endif %}>
+            <td>{{ todo.getId() }}</td>
+            <td>{{ todo.getUserId() }}</td>
+            <td {% if todo.getCompleted() %} class="line-through" {% endif %}>{{ todo.getDescription() }}</td>
             <td class="display-flex">
-                {% if not todo.completed %}
-                <form method="post" action="{{ app.request.baseurl }}/todo/complete/{{ todo.id }}">
+                {% if not todo.getCompleted() %}
+                <form method="post" action="{{ app.request.baseurl }}/todo/complete/{{ todo.getId }}">
                     <button title="click to complete" type="submit" class="btn btn-xs btn-success"><span class="glyphicon glyphicon-ok glyphicon-white"></span></button>
                 </form> &nbsp;
+                <a href="{{ app.request.baseurl }}/todo/{{ todo.id }}/json" class="text-decoration-none">
+                    <button title="click for json" type="submit" class="btn btn-xs btn-secondary"><span class="glyphicon glyphicon-file glyphicon-white"></span></button>
+                </a> &nbsp;
                 {% endif %}
-                <form method="post" action="{{ app.request.baseurl }}/todo/delete/{{ todo.id }}">
+                <form method="post" action="{{ app.request.baseurl }}/todo/delete/{{ todo.getId }}">
                     <button type="submit" class="btn btn-xs btn-danger"><span class="glyphicon glyphicon-remove glyphicon-white"></span></button>
                 </form>
             </td>

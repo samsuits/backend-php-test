@@ -2,7 +2,6 @@
 
 use Kosinix\Pagination;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
 
 $app['twig'] = $app->share($app->extend('twig', function($twig, $app) {
     $twig->addGlobal('user', $app['session']->get('user'));
@@ -19,18 +18,28 @@ $app->get('/', function () use ($app) {
 
 
 $app->match('/login', function (Request $request) use ($app) {
+    // Redirect to todo if already login
+    if ($app['session']->get('user')) {
+        return $app->redirect('/todo');
+    }
     $username = $request->get('username');
     $password = $request->get('password');
 
     if ($username) {
-        $sql = "SELECT * FROM users WHERE username = '$username' and password = '$password'";
-        echo $sql;
-        $user = $app['db']->fetchAssoc($sql);
+        // Entity Manager
+        $em = $app['orm.em'];
 
-        if ($user){
+        // User Repository
+        $userRepo = $em->getRepository('Entity\User');
+
+        $user = $userRepo->findOneBy(array('username' => $username));
+
+        // Verifying user and password
+        if ($user && password_verify($password, $user->getPassword())) {
             $app['session']->set('user', $user);
             return $app->redirect('/todo');
         }
+        $app['session']->getFlashBag()->add('errors', 'Invalid username or password');
     }
 
     return $app['twig']->render('login.html', array());
@@ -48,12 +57,32 @@ $app->get('/todo/{id}/{format}', function ($id, $format) use ($app) {
         return $app->redirect('/login');
     }
 
-    if ($id){
-        $sql = "SELECT * FROM todos WHERE id = '$id'";
-        $todo = $app['db']->fetchAssoc($sql);
+    if ($id) {
+        // Entity Manager
+        $em = $app['orm.em'];
+
+        // Query Builder
+        $todoQb = $em
+            ->getRepository('Entity\Todo')
+            ->createQueryBuilder('t');
+
+        $query = $todoQb
+            ->join('t.user', 'u')
+            ->where('t.id = :tid')
+            ->andWhere('u.id = :uid')
+            ->setParameter('tid', $id)
+            ->setParameter('uid', $user->getId())
+            ->getQuery();
+
+        $todo = $query->setMaxResults(1)->getOneOrNullResult();
+
+        if (empty($todo)) {
+            $app['session']->getFlashBag()->add('errors', 'Todo cannot be found.');
+            return $app->redirect('/todo');
+        }
 
         if ($format && $format == 'json') {
-            return $app->json($todo);
+            return $app->json($todo->toArray());
         }
 
         return $app['twig']->render('todo.html', [
@@ -72,7 +101,6 @@ $app->post('/todo/add', function (Request $request) use ($app) {
         return $app->redirect('/login');
     }
 
-    $user_id = $user['id'];
     $description = $request->get('description');
 
     if (empty(trim($description))) {
@@ -80,59 +108,128 @@ $app->post('/todo/add', function (Request $request) use ($app) {
         return $app->redirect('/todo');
     }
 
-    $sql = "INSERT INTO todos (user_id, description) VALUES ('$user_id', '$description')";
-    $app['db']->executeUpdate($sql);
+    // Entity Manager
+    $em = $app['orm.em'];
+
+    $todo = new \Entity\Todo();
+    $todo->setDescription($description);
+    $todo->setUser($user);
+
+    // Save todo to database
+    $em->merge($todo);
+    $em->flush();
+
     $app['session']->getFlashBag()->add('messages', 'Todo successfully added');
 
     return $app->redirect('/todo');
 });
 
 $app->match('/todo/complete/{id}', function ($id) use ($app) {
+    if (null === $user = $app['session']->get('user')) {
+        return $app->redirect('/login');
+    }
 
-    $sql = "UPDATE todos SET completed = 1 WHERE id = '$id'";
-    $app['db']->executeUpdate($sql);
+    // return if id is empty
+    if(empty($id)) {
+        $app['session']->getFlashBag()->add('errors', 'Todo Id required');
+        return $app->redirect('/todo');
+    }
+
+    // Entity Manager
+    $em = $app['orm.em'];
+
+    // Todo Repository
+    $todoRepo = $em->getRepository('Entity\Todo');
+
+    $todo = $todoRepo->findOneById($id);
+
+    if(empty($todo)) {
+        $app['session']->getFlashBag()->add('errors', 'Cannot find todo');
+        return $app->redirect('/todo');
+    }
+
+    $todo->setCompleted(1);
+
+    // Update database
+    $em->persist($todo);
+    $em->flush();
+
     $app['session']->getFlashBag()->add('messages', 'Todo #' . $id. ' marked as completed');
 
     return $app->redirect('/todo');
 });
 
 $app->match('/todo/delete/{id}', function ($id) use ($app) {
+    if (null === $user = $app['session']->get('user')) {
+        return $app->redirect('/login');
+    }
 
-    $sql = "DELETE FROM todos WHERE id = '$id'";
-    $app['db']->executeUpdate($sql);
+    // return if id is empty
+    if(empty($id)) {
+        $app['session']->getFlashBag()->add('errors', 'Todo Id required');
+        return $app->redirect('/todo');
+    }
+
+    // Entity Manager
+    $em = $app['orm.em'];
+
+    // Todo Repository
+    $todoRepo = $em->getRepository('Entity\Todo');
+
+    $todo = $todoRepo->findOneById($id);
+
+    if(empty($todo)) {
+        $app['session']->getFlashBag()->add('errors', 'Cannot find todo');
+        return $app->redirect('/todo');
+    }
+
+    // Remove from database
+    $em->remove($todo);
+    $em->flush();
+
     $app['session']->getFlashBag()->add('messages', 'Todo successfully deleted');
 
     return $app->redirect('/todo');
 });
 
-$app->get('/todolist/{page}/{sort_by}/{sorting}', function ($page, $sort_by, $sorting) use ($app) {
+$app->get('/todolist/{page}', function ($page) use ($app) {
     if (null === $user = $app['session']->get('user')) {
         return $app->redirect('/login');
     }
 
-    $sql = 'SELECT COUNT(*) AS `total` FROM todos';
-    $count = $app['db']->fetchAssoc($sql);
-    $count = (int) $count['total'];
+    $em = $app['orm.em'];
+    $repo = $em
+        ->getRepository('Entity\Todo');
+
+    $count = $repo
+        ->createQueryBuilder('t')
+        ->select('count(t.id)')
+        ->join('t.user', 'u')
+        ->where('u.id = :uid')
+        ->setParameter('uid', $user->getId())
+        ->getQuery()
+        ->getSingleScalarResult();
 
 
     /** @var \Kosinix\Paginator $paginator */
     $paginator =  $app['paginator']($count, $page);
 
-    $sql = sprintf('SELECT * FROM todos ORDER BY %s %s LIMIT %d,%d',
-        $sort_by, strtoupper($sorting), $paginator->getStartIndex(), $paginator->getPerPage());
+    $todoQb = $repo
+        ->createQueryBuilder('t')
+        ->join('t.user', 'u')
+        ->where('u.id = :uid')
+        ->setParameter('uid', $user->getId())
+        ->setFirstResult($paginator->getStartIndex())
+        ->setMaxResults($paginator->getPerPage());
 
-    $todos = $app['db']->fetchAll($sql);
+    $todos = $todoQb->getQuery()->getResult();
 
-    $pagination = new Pagination($paginator, $app['url_generator'], 'todolist', $sort_by, $sorting);
+    $pagination = new Pagination($paginator, $app['url_generator'], 'todolist', 'id', 'asc');
 
     return $app['twig']->render('todos.html', [
         'todos' => $todos,
         'pagination' => $pagination
     ]);
 })->value('page', 1)
-    ->value('sort_by', 'id')
-    ->value('sorting', 'asc')
     ->assert('page', '\d+') // Numbers only
-    ->assert('sort_by','[a-zA-Z_]+') // Match a-z, A-Z, and "_"
-    ->assert('sorting','(\basc\b)|(\bdesc\b)') // Match "asc" or "desc"
     ->bind('todolist');

@@ -1,6 +1,7 @@
 <?php
 
 use DerAlex\Silex\YamlConfigServiceProvider;
+use Dflydev\Silex\Provider\DoctrineOrm\DoctrineOrmServiceProvider;
 use Silex\Application;
 use Silex\Provider\DoctrineServiceProvider;
 use Silex\Provider\HttpFragmentServiceProvider;
@@ -19,16 +20,22 @@ $app->register(new TwigServiceProvider());
 $app->register(new HttpFragmentServiceProvider());
 
 $app->register(new YamlConfigServiceProvider(__DIR__.'/../config/config.yml'));
-$app->register(new DoctrineServiceProvider, array(
-    'db.options' => array(
-        'driver'    => 'pdo_mysql',
-        'host'      => $app['config']['database']['host'],
-        'dbname'    => $app['config']['database']['dbname'],
-        'user'      => $app['config']['database']['user'],
-        'password'  => $app['config']['database']['password'],
-        'charset'   => 'utf8',
-    ),
-));
+//$app->register(new DoctrineServiceProvider, array(
+//    'db.options' => array(
+//        'driver'    => 'pdo_mysql',
+//        'host'      => $app['config']['database']['host'],
+//        'dbname'    => $app['config']['database']['dbname'],
+//        'user'      => $app['config']['database']['user'],
+//        'password'  => $app['config']['database']['password'],
+//        'charset'   => 'utf8',
+//    ),
+//));
+
+$app->register(new DoctrineServiceProvider());
+
+// ORM Service
+$app->register(new DoctrineOrmServiceProvider());
+
 
 // Paginator
 $app->register(new \Provider\PaginatorServiceProvider());
