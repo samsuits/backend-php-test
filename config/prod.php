@@ -24,7 +24,7 @@ $app['orm.em.options'] = array(
     'mappings' => array(
         array(
             'type' => 'annotation',
-            'path' => __DIR__ . '/../../src',
+            'path' => __DIR__ . './../src/Entity',
             'namespace' => 'Entity'
         )
     ),
